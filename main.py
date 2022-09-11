@@ -5,10 +5,10 @@ from lib.utils import dedupe_all, parse_args
 
 def main():
   start = time.time()
-  in_dir, out_dir, unique = parse_args(sys.argv)
+  in_dir, out_dir, unique, keep = parse_args(sys.argv)
 
   # inits and connects to db
-  db = Database(unique)
+  db = Database(unique, keep)
 
   # show empty table
   db.print_info()

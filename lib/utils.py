@@ -59,7 +59,7 @@ def dedupe_archive(file, in_dir, out_dir, db):
 def dedupe_file(file, out_dir, db):
     with open(file) as csv_file:
         print(f'Deduping {csv_file.name}')
-        csv_reader = csv.reader(csv_file, delimiter=',')
+        csv_reader = csv.DictReader(csv_file)
         # skip csv header
         next(csv_reader)
 
@@ -70,10 +70,8 @@ def dedupe_file(file, out_dir, db):
             line_count += 1
             try:
                 # try saving in Deduped table. save into new csv unless a unique constraint exception is raised
-                db.cur.execute(f"INSERT INTO {Database.table_name} (name, payload) VALUES (?, ?)", (row[0], row[1]))
-                db.con.commit()
+                db.insert(row)
                 # TODO: save into new csv. or do this after all
-                
             except IntegrityError:
                 # duplicate - dont save
                 duplicates += 1
@@ -84,11 +82,12 @@ def dedupe_file(file, out_dir, db):
 def parse_args(argv):
     in_dir = None
     out_dir = "./deduped"
-    unique = []
+    unique = [] # columns to deduplicaet by
+    keep = [] # columns to save
     arg_help = "{0} -i <in-dir> -o <out-dir> -u <unique>".format(argv[0])
     
     try:
-        opts, args = getopt.getopt(argv[1:], "h:i:o:u:", ["help", "in-dir=", "out-dir=", "unique="])
+        opts, args = getopt.getopt(argv[1:], "h:i:o:u:k:", ["help", "in-dir=", "out-dir=", "unique=", "keep="])
     except getopt.GetoptError as e:
         print(e)
         print(arg_help)
@@ -104,10 +103,12 @@ def parse_args(argv):
             out_dir = arg
         elif opt in ("-u", "--unique"):
             unique.append(arg)
+        elif opt in ("-k", "--keep"):
+            keep.append(arg)
 
     if in_dir is None:
         raise Exception('Must provide an in directory with -i')
     if len(unique) == 0: # empty list
         raise Exception('Must provide a column name to dedupe on with -u')
 
-    return in_dir, out_dir, unique
+    return in_dir, out_dir, unique, keep
