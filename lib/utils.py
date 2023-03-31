@@ -57,9 +57,27 @@ def dedupe_archive(file, in_dir, out_dir, db):
         os.remove(filename)
 
 def dedupe_file(file, out_dir, db):
-    with open(file) as csv_file:
-        print(f'Deduping {csv_file.name}')
-        csv_reader = csv.DictReader(csv_file)
+    # TODO: handle recompressing/archiving if in file was compressed/archived
+    # or do by default? or have option to do so?
+    with open(file) as csv_read:
+        should_write_csv = out_dir is not None
+        
+        if should_write_csv:
+
+            
+
+            # FILE NAME IS NOT RESOLVING CORRECTLY
+            # FileNotFoundError: [Errno 2] No such file or directory: './data/deduped-gzip/./data-dev/csvs-with-dupes-mixed/combined copy.csv-deduped.csv'
+            write_filename = f'{out_dir}/{csv_read.name}-deduped.csv'
+                # os.path.join(out_dir, csv_read.name + 'deduped.' + 'csv')
+            print(write_filename)
+
+
+            csv_write = open(write_filename, 'w+')
+            writer = csv.writer(csv_write)
+
+        print(f'Deduping {csv_read.name}')
+        csv_reader = csv.DictReader(csv_read)
         # skip csv header
         next(csv_reader)
 
@@ -72,6 +90,10 @@ def dedupe_file(file, out_dir, db):
                 # try saving in Deduped table. save into new csv unless a unique constraint exception is raised
                 db.insert(row)
                 # TODO: save into new csv. or do this after all
+                if should_write_csv:
+                    # TODO: change this to only save the specified columns.
+                    writer.writerow(row)
+                    writer.close()
             except IntegrityError:
                 # duplicate - dont save
                 duplicates += 1
